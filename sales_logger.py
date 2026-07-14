@@ -11,9 +11,16 @@ then sends a notification via Telegram or LINE bot.
 """
 
 import argparse
+import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+
+import gspread
+import requests
+from google.oauth2.service_account import Credentials
+
+TZ_TH = timezone(timedelta(hours=7))  # UTC+7
 
 
 def append_to_sheet(menu: str, qty: int, price: float) -> dict:
@@ -22,7 +29,40 @@ def append_to_sheet(menu: str, qty: int, price: float) -> dict:
     Returns dict {timestamp, menu, qty, price, total} ที่ append แล้ว
     Raises RuntimeError ถ้า credentials ไม่มี หรือ Sheet ไม่ accessible
     """
-    raise NotImplementedError("Implement in Session 2 Lab 1.3 (TODO 1)")
+    creds_json = os.environ.get("GOOGLE_SHEETS_CREDENTIALS")
+    sheet_id = os.environ.get("SHEET_ID")
+    if not creds_json:
+        raise RuntimeError(
+            "ไม่พบ env GOOGLE_SHEETS_CREDENTIALS (ตั้ง secret แล้ว restart Codespace หรือยัง)")
+    if not sheet_id:
+        raise RuntimeError("ไม่พบ env SHEET_ID (ก๊อปจาก URL ของ Google Sheet)")
+
+    try:
+        info = json.loads(creds_json)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(
+            f"GOOGLE_SHEETS_CREDENTIALS ไม่ใช่ JSON ที่ถูกต้อง: {exc}") from exc
+
+    total = qty * price
+    timestamp = datetime.now(TZ_TH).isoformat(timespec="seconds")
+
+    try:
+        creds = Credentials.from_service_account_info(
+            info, scopes=["https://www.googleapis.com/auth/spreadsheets"]
+        )
+        gc = gspread.authorize(creds)
+        ws = gc.open_by_key(sheet_id).sheet1
+        ws.append_row([timestamp, menu, qty, price, total])
+    except Exception as exc:
+        raise RuntimeError(f"เข้าถึง Google Sheet ไม่ได้: {exc}") from exc
+
+    return {
+        "timestamp": timestamp,
+        "menu": menu,
+        "qty": qty,
+        "price": price,
+        "total": total,
+    }
 
 
 def send_notification(message: str) -> str:
@@ -32,14 +72,28 @@ def send_notification(message: str) -> str:
     Returns: provider name ที่ใช้ ("telegram" หรือ "line")
     Raises RuntimeError ถ้า no credentials
     """
-    raise NotImplementedError("Implement in Session 2 Lab 1.3 (TODO 2)")
+    tg_token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    tg_chat_id = os.environ.get("TELEGRAM_CHAT_ID")
+    line_token = os.environ.get("LINE_CHANNEL_TOKEN")
+
+    if tg_token and tg_chat_id:
+        url = f"https://api.telegram.org/bot{tg_token}/sendMessage"
+        r = requests.post(
+            url, json={"chat_id": tg_chat_id, "text": message}, timeout=10)
+        r.raise_for_status()
+        return "telegram"
+
+    raise RuntimeError(
+        "ไม่พบ credentials ของ bot — ตั้ง TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID หรือ LINE_CHANNEL_TOKEN"
+    )
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="MilkLab Sales Logger")
     parser.add_argument("--menu", required=True, help="ชื่อเมนู")
     parser.add_argument("--qty", type=int, required=True, help="จำนวนขวด")
-    parser.add_argument("--price", type=float, required=True, help="ราคาต่อขวด")
+    parser.add_argument("--price", type=float,
+                        required=True, help="ราคาต่อขวด")
     args = parser.parse_args()
 
     try:
@@ -53,12 +107,15 @@ def main() -> int:
 
     try:
         # TODO 4: เรียก send_notification ด้วย message ที่บอกยอดที่บันทึก
-        provider = send_notification(f"บันทึก {args.menu} x{args.qty} = {total} บาท")
+        provider = send_notification(
+            f"🧾 บันทึก {args.menu} x{args.qty} = {total:g} บาท ({row['timestamp']})")
     except Exception as exc:
-        print(f"[WARN] บันทึก Sheet สำเร็จแต่ส่งแจ้งเตือนล้มเหลว: {exc}", file=sys.stderr)
+        print(
+            f"[WARN] บันทึก Sheet สำเร็จแต่ส่งแจ้งเตือนล้มเหลว: {exc}", file=sys.stderr)
         return 0
 
-    print(f"[OK] บันทึกและแจ้งเตือนผ่าน {provider} เรียบร้อย ยอด {total} บาท")
+    print(
+        f"[OK] บันทึกและแจ้งเตือนผ่าน {provider} เรียบร้อย ยอด {total:g} บาท")
     return 0
 
 
