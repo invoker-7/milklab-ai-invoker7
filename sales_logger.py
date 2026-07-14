@@ -83,19 +83,6 @@ def send_notification(message: str) -> str:
         r.raise_for_status()
         return "telegram"
 
-    # if line_token:
-        r = requests.post(
-            "https://api.line.me/v2/bot/message/broadcast",
-            headers={
-                "Authorization": f"Bearer {line_token}",
-                "Content-Type": "application/json",
-            },
-            json={"messages": [{"type": "text", "text": message}]},
-            timeout=10,
-        )
-        r.raise_for_status()
-        return "line"
-
     raise RuntimeError(
         "ไม่พบ credentials ของ bot — ตั้ง TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID หรือ LINE_CHANNEL_TOKEN"
     )
