@@ -14,7 +14,6 @@ import json
 import os
 import sys
 from typing import Any
-
 from dotenv import load_dotenv
 from google import genai
 
@@ -78,6 +77,19 @@ def _extract_json_object(text: str) -> dict[str, Any]:
     return data
 
 
+def _format_args_for_trace(args: dict[str, Any]) -> str:
+    parts = []
+    for key, value in args.items():
+        if isinstance(value, str):
+            rendered = value
+        elif isinstance(value, float) and value.is_integer():
+            rendered = str(int(value))
+        else:
+            rendered = str(value)
+        parts.append(f"{key}: {rendered}")
+    return "{" + ", ".join(parts) + "}"
+
+
 def parse_command(cmd: str, api_key: str | None = None) -> dict:
     """TODO 1: ส่ง cmd ไป Gemini พร้อม TOOL_SCHEMA ขอให้ตอบเป็น JSON {tool, args}
 
@@ -138,7 +150,7 @@ def dispatch_tool(tool_call: dict) -> str:
         provider = send_notification(
             f"🧾 บันทึก {row['menu']} x{row['qty']} = {row['total']:g} บาท ({row['timestamp']})"
         )
-        return f"บันทึกเรียบร้อย {row['menu']} x{row['qty']} = {row['total']:g} บาท ผ่าน {provider}"
+        return f"OK: row appended at {row['timestamp']}"
 
     if tool == "query_sales":
         from morning_report import format_report, read_rows, summarize_for_date
@@ -167,11 +179,15 @@ def main() -> int:
 
     # TODO 3: เรียก parse_command then dispatch_tool then print trace ตาม format ใน session-2.md
     tool_call = parse_command(args.cmd)
-    print(f"[LLM]  tool={tool_call['tool']} args={tool_call['args']}")
+    print(f"[LLM]  tool={tool_call['tool']} args={_format_args_for_trace(tool_call['args'])}")
 
     result = dispatch_tool(tool_call)
     print(f"[TOOL] {tool_call['tool']} {result}")
-    print(f"[USER] ← {result}")
+    if tool_call["tool"] == "log_sale":
+        total = tool_call["args"]["qty"] * tool_call["args"]["price"]
+        print(f"[USER] ←  บันทึกแล้วยอด {total:g} บาท")
+    else:
+        print(f"[USER] ← {result}")
 
     return 0
 
