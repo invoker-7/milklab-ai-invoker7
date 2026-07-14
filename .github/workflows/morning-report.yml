@@ -8,8 +8,6 @@ on:
     - cron: "0 0 * * *"   # 7:00 Asia/Bangkok
 
   workflow_dispatch:        # manual trigger
-  branches:
-      - features/sales-logger
 
 
 jobs:
