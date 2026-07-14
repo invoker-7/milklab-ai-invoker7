@@ -1,0 +1,39 @@
+name: Morning Report
+
+
+on:
+
+  schedule:
+
+    - cron: "0 0 * * *"   # 7:00 Asia/Bangkok
+
+  workflow_dispatch:        # manual trigger
+  branches:
+      - features/sales-logger
+
+
+jobs:
+
+  send-report:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+
+        with: { python-version: '3.11' }
+
+      - run: pip install -r requirements.txt
+
+      - name: Run morning report
+
+        env:
+          GOOGLE_SHEETS_CREDENTIALS: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          SHEET_ID:           ${{ secrets.SHEET_ID }}
+
+        run: python morning_report.py
