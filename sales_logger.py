@@ -111,7 +111,7 @@ def main() -> int:
             f"🧾 บันทึก {args.menu} x{args.qty} = {total:g} บาท ({row['timestamp']})")
     except Exception as exc:
         print(
-            f"[WARN] บันทึก Sheet สำเร็จแต่ส่งแจ้งเตือนล้มเหลว: {exc}", file=sys.stderr)
+            f"[WARN] บันทึก Sheet สำเร็จแต่ส่งแจ้งเตือนล้มเหลว กรึณาตรวจสอบ: {exc}", file=sys.stderr)
         return 0
 
     print(
