@@ -94,8 +94,8 @@ def _format_args_for_trace(args: dict[str, Any]) -> str:
 
 
 def _append_trace_log(user_cmd: str, tool_call: dict[str, Any], tool_result: str) -> None:
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
-    llm_payload = json.dumps(tool_call, ensure_ascii=False)
+    timestamp = datetime.now().astimezone().isoformat(timespec="seconds")
+    llm_payload = json.dumps(tool_call, ensure_ascii=False, separators=(",", ": "))
     lines = [
         f"{timestamp} | user_input | {user_cmd}",
         f"{timestamp} | llm_response | {llm_payload}",
@@ -193,19 +193,28 @@ def main() -> int:
     print(f"[USER] {args.cmd}")
 
     # TODO 3: เรียก parse_command then dispatch_tool then print trace ตาม format ใน session-2.md
-    tool_call = parse_command(args.cmd)
-    print(f"[LLM]  tool={tool_call['tool']} args={_format_args_for_trace(tool_call['args'])}")
+    tool_call = {"tool": "parse_error", "args": {}}
+    result = ""
 
-    result = dispatch_tool(tool_call)
-    _append_trace_log(args.cmd, tool_call, result)
-    print(f"[TOOL] {tool_call['tool']} {result}")
-    if tool_call["tool"] == "log_sale":
-        total = tool_call["args"]["qty"] * tool_call["args"]["price"]
-        print(f"[USER] ←  บันทึกแล้วยอด {total:g} บาท")
-    else:
-        print(f"[USER] ← {result}")
+    try:
+        tool_call = parse_command(args.cmd)
+        print(f"[LLM]  tool={tool_call['tool']} args={_format_args_for_trace(tool_call['args'])}")
 
-    return 0
+        result = dispatch_tool(tool_call)
+        print(f"[TOOL] {tool_call['tool']} {result}")
+        if tool_call["tool"] == "log_sale":
+            total = tool_call["args"]["qty"] * tool_call["args"]["price"]
+            print(f"[USER] ←  บันทึกแล้วยอด {total:g} บาท")
+        else:
+            print(f"[USER] ← {result}")
+        return 0
+    except Exception as exc:
+        result = f"ERROR: {exc}"
+        print(f"[TOOL] {tool_call.get('tool', 'parse_error')} {result}")
+        print(f"[USER] ← {result}", file=sys.stderr)
+        return 1
+    finally:
+        _append_trace_log(args.cmd, tool_call, result)
 
 
 if __name__ == "__main__":
