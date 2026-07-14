@@ -13,6 +13,7 @@ import argparse
 import json
 import os
 import sys
+from typing import Any
 
 from dotenv import load_dotenv
 from google import genai
@@ -57,13 +58,65 @@ TOOL_SCHEMA = [
 ]
 
 
+def _extract_json_object(text: str) -> dict[str, Any]:
+    """Parse JSON from raw model output, tolerating code fences or extra text."""
+    raw = (text or "").strip()
+    if not raw:
+        raise RuntimeError("Gemini returned an empty response")
+
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        start = raw.find("{")
+        end = raw.rfind("}")
+        if start == -1 or end == -1 or end <= start:
+            raise RuntimeError(f"parse ไม่ได้: {raw}")
+        data = json.loads(raw[start : end + 1])
+
+    if not isinstance(data, dict):
+        raise RuntimeError(f"ผลลัพธ์ต้องเป็น JSON object: {data!r}")
+    return data
+
+
 def parse_command(cmd: str, api_key: str | None = None) -> dict:
     """TODO 1: ส่ง cmd ไป Gemini พร้อม TOOL_SCHEMA ขอให้ตอบเป็น JSON {tool, args}
 
     Returns dict {"tool": <name>, "args": <dict>}
     Raises RuntimeError ถ้า parse ไม่ได้
     """
-    raise NotImplementedError("Implement in Session 2 Lab 2.3 (TODO 1)")
+    key = api_key or os.environ.get("GOOGLE_API_KEY")
+    if not key:
+        raise RuntimeError("GOOGLE_API_KEY not set in env or argument")
+
+    tool_names = ", ".join(tool["name"] for tool in TOOL_SCHEMA)
+    prompt = f"""คุณคือ agent ที่ต้องเลือก tool ที่เหมาะที่สุดจากรายการนี้เท่านั้น:
+{json.dumps(TOOL_SCHEMA, ensure_ascii=False, indent=2)}
+
+คำสั่งผู้ใช้: {cmd}
+
+กติกา:
+- ตอบกลับเป็น JSON object เท่านั้น
+- รูปแบบต้องเป็น {{"tool": "<name>", "args": {{...}}}}
+- tool ต้องเป็นหนึ่งใน: {tool_names}
+- ห้ามใส่คำอธิบายอื่น นอกเหนือจาก JSON
+"""
+
+    client = genai.Client(api_key=key)
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt,
+    )
+
+    data = _extract_json_object(response.text or "")
+    tool = data.get("tool")
+    args = data.get("args")
+
+    if tool not in {item["name"] for item in TOOL_SCHEMA}:
+        raise RuntimeError(f"unknown tool: {tool!r}")
+    if not isinstance(args, dict):
+        raise RuntimeError(f"args ต้องเป็น object: {args!r}")
+
+    return {"tool": tool, "args": args}
 
 
 def dispatch_tool(tool_call: dict) -> str:
@@ -71,7 +124,37 @@ def dispatch_tool(tool_call: dict) -> str:
 
     Returns: ข้อความสรุปผลที่ tool คืน
     """
-    raise NotImplementedError("Implement in Session 2 Lab 2.3 (TODO 2)")
+    tool = tool_call.get("tool")
+    args = tool_call.get("args") or {}
+
+    if tool == "log_sale":
+        from sales_logger import append_to_sheet, send_notification
+
+        row = append_to_sheet(
+            menu=str(args["menu"]),
+            qty=int(args["qty"]),
+            price=float(args["price"]),
+        )
+        provider = send_notification(
+            f"🧾 บันทึก {row['menu']} x{row['qty']} = {row['total']:g} บาท ({row['timestamp']})"
+        )
+        return f"บันทึกเรียบร้อย {row['menu']} x{row['qty']} = {row['total']:g} บาท ผ่าน {provider}"
+
+    if tool == "query_sales":
+        from morning_report import format_report, read_rows, summarize_for_date
+
+        date = str(args["date"])
+        rows = read_rows()
+        summary = summarize_for_date(rows, date)
+        return format_report(summary)
+
+    if tool == "send_alert":
+        from sales_logger import send_notification
+
+        provider = send_notification(str(args["message"]))
+        return f"ส่งแจ้งเตือนผ่าน {provider} เรียบร้อย"
+
+    raise RuntimeError(f"unknown tool: {tool!r}")
 
 
 def main() -> int:
