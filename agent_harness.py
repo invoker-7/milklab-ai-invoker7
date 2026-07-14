@@ -13,6 +13,7 @@ import argparse
 import json
 import os
 import sys
+from datetime import datetime
 from typing import Any
 from dotenv import load_dotenv
 from google import genai
@@ -56,6 +57,8 @@ TOOL_SCHEMA = [
     },
 ]
 
+TRACE_LOG_PATH = os.path.join(os.path.dirname(__file__), "agent_trace.log")
+
 
 def _extract_json_object(text: str) -> dict[str, Any]:
     """Parse JSON from raw model output, tolerating code fences or extra text."""
@@ -88,6 +91,18 @@ def _format_args_for_trace(args: dict[str, Any]) -> str:
             rendered = str(value)
         parts.append(f"{key}: {rendered}")
     return "{" + ", ".join(parts) + "}"
+
+
+def _append_trace_log(user_cmd: str, tool_call: dict[str, Any], tool_result: str) -> None:
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+    llm_payload = json.dumps(tool_call, ensure_ascii=False)
+    lines = [
+        f"{timestamp} | user_input | {user_cmd}",
+        f"{timestamp} | llm_response | {llm_payload}",
+        f"{timestamp} | tool_result | {tool_result}",
+    ]
+    with open(TRACE_LOG_PATH, "a", encoding="utf-8") as trace_file:
+        trace_file.write("\n".join(lines) + "\n")
 
 
 def parse_command(cmd: str, api_key: str | None = None) -> dict:
@@ -182,6 +197,7 @@ def main() -> int:
     print(f"[LLM]  tool={tool_call['tool']} args={_format_args_for_trace(tool_call['args'])}")
 
     result = dispatch_tool(tool_call)
+    _append_trace_log(args.cmd, tool_call, result)
     print(f"[TOOL] {tool_call['tool']} {result}")
     if tool_call["tool"] == "log_sale":
         total = tool_call["args"]["qty"] * tool_call["args"]["price"]
