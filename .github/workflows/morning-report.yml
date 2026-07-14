@@ -2,11 +2,9 @@ name: Morning Report
 
 
 on:
-
   schedule:
-
+    # 00:00 UTC = 07:00 ICT (Thailand)
     - cron: "0 0 * * *"   # 7:00 Asia/Bangkok
-
   workflow_dispatch:        # manual trigger
 
 
