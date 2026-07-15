@@ -105,6 +105,37 @@ def _append_trace_log(user_cmd: str, tool_call: dict[str, Any], tool_result: str
         trace_file.write("\n".join(lines) + "\n")
 
 
+def _validate_tool_call(tool_call: dict[str, Any]) -> None:
+    tool = tool_call.get("tool")
+    args = tool_call.get("args") or {}
+
+    if tool == "log_sale":
+        menu = str(args.get("menu", "")).strip()
+        qty = int(args.get("qty", 0))
+        price = float(args.get("price", 0))
+        if not menu:
+            raise RuntimeError("ValueError menu must not be empty")
+        if qty <= 0:
+            raise RuntimeError("ValueError quantity must be positive")
+        if price <= 0:
+            raise RuntimeError("ValueError price must be positive")
+        return
+
+    if tool == "query_sales":
+        date = str(args.get("date", "")).strip()
+        if not date:
+            raise RuntimeError("ValueError date must not be empty")
+        return
+
+    if tool == "send_alert":
+        message = str(args.get("message", "")).strip()
+        if not message:
+            raise RuntimeError("ValueError message must not be empty")
+        return
+
+    raise RuntimeError(f"unknown tool: {tool!r}")
+
+
 def parse_command(cmd: str, api_key: str | None = None) -> dict:
     """TODO 1: ส่ง cmd ไป Gemini พร้อม TOOL_SCHEMA ขอให้ตอบเป็น JSON {tool, args}
 
@@ -153,6 +184,8 @@ def dispatch_tool(tool_call: dict) -> str:
     """
     tool = tool_call.get("tool")
     args = tool_call.get("args") or {}
+
+    _validate_tool_call(tool_call)
 
     if tool == "log_sale":
         from sales_logger import append_to_sheet, send_notification
