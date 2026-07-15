@@ -13,7 +13,7 @@ import argparse
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from dotenv import load_dotenv
 from google import genai
@@ -58,6 +58,7 @@ TOOL_SCHEMA = [
 ]
 
 TRACE_LOG_PATH = os.path.join(os.path.dirname(__file__), "agent_trace.log")
+TZ_TH = timezone(timedelta(hours=7))
 
 
 def _extract_json_object(text: str) -> dict[str, Any]:
@@ -94,7 +95,7 @@ def _format_args_for_trace(args: dict[str, Any]) -> str:
 
 
 def _append_trace_log(user_cmd: str, tool_call: dict[str, Any], tool_result: str) -> None:
-    timestamp = datetime.now().astimezone().isoformat(timespec="seconds")
+    timestamp = datetime.now(TZ_TH).isoformat(timespec="seconds")
     llm_payload = json.dumps(tool_call, ensure_ascii=False, separators=(",", ": "))
     lines = [
         f"{timestamp} | user_input | {user_cmd}",
@@ -103,6 +104,31 @@ def _append_trace_log(user_cmd: str, tool_call: dict[str, Any], tool_result: str
     ]
     with open(TRACE_LOG_PATH, "a", encoding="utf-8") as trace_file:
         trace_file.write("\n".join(lines) + "\n")
+
+
+def _today_th() -> str:
+    return datetime.now(TZ_TH).strftime("%Y-%m-%d")
+
+
+def _yesterday_th() -> str:
+    return (datetime.now(TZ_TH) - timedelta(days=1)).strftime("%Y-%m-%d")
+
+
+def _normalize_relative_query_date(cmd: str, tool_call: dict[str, Any]) -> dict[str, Any]:
+    if tool_call.get("tool") != "query_sales":
+        return tool_call
+
+    cmd_text = cmd.strip()
+    args = dict(tool_call.get("args") or {})
+
+    if "วันนี้" in cmd_text:
+        args["date"] = _today_th()
+    elif "เมื่อวาน" in cmd_text:
+        args["date"] = _yesterday_th()
+
+    tool_call = dict(tool_call)
+    tool_call["args"] = args
+    return tool_call
 
 
 def _validate_tool_call(tool_call: dict[str, Any]) -> None:
@@ -150,6 +176,8 @@ def parse_command(cmd: str, api_key: str | None = None) -> dict:
     prompt = f"""คุณคือ agent ที่ต้องเลือก tool ที่เหมาะที่สุดจากรายการนี้เท่านั้น:
 {json.dumps(TOOL_SCHEMA, ensure_ascii=False, indent=2)}
 
+วันนี้คือ {_today_th()} เวลาไทย (UTC+7)
+
 คำสั่งผู้ใช้: {cmd}
 
 กติกา:
@@ -174,7 +202,7 @@ def parse_command(cmd: str, api_key: str | None = None) -> dict:
     if not isinstance(args, dict):
         raise RuntimeError(f"args ต้องเป็น object: {args!r}")
 
-    return {"tool": tool, "args": args}
+    return _normalize_relative_query_date(cmd, {"tool": tool, "args": args})
 
 
 def dispatch_tool(tool_call: dict) -> str:
