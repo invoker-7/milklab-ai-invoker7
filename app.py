@@ -2,36 +2,67 @@
 
 Run locally: streamlit run app.py
 Deploy: push to GitHub then Actions deploys to HuggingFace Space
-
-นักศึกษาต้องเติม TODO 5 จุด ใน Session 3 Lab 2.2
 """
 
 import os
+import re
 
+import faiss
 import streamlit as st
+from dotenv import load_dotenv
+from google import genai
+from sentence_transformers import SentenceTransformer
+
+load_dotenv()
+
+KB_PATH = "menu_kb.md"
+EMBED_MODEL = "all-MiniLM-L6-v2"
+
+ANSWER_PROMPT = """\
+ตอบจากข้อมูลต่อไปนี้เท่านั้น ถ้าไม่มีใน context ให้บอกว่าไม่รู้
+
+Context:
+{context}
+
+คำถาม: {query}
+"""
+
+
+def _load_chunks(path: str = KB_PATH) -> list[str]:
+    text = open(path, encoding="utf-8").read()
+    sections = re.split(r"\n(?=## )", text)
+    return [s.strip() for s in sections if s.strip()]
 
 
 @st.cache_resource
 def load_index():
-    """TODO 1+2+3: โหลด menu_kb.md, split เป็น chunk, encode ด้วย sentence-transformers,
-    สร้าง faiss index. Cache เพราะโหลด model ครั้งแรกใช้เวลา 30 วินาที
+    """โหลด menu_kb.md, split เป็น chunk, encode ด้วย sentence-transformers, สร้าง faiss index.
+    Cache เพราะโหลด model ครั้งแรกใช้เวลา 30 วินาที
 
     Returns: (model, index, chunks_list)
     """
-    raise NotImplementedError("Implement in Session 3 Lab 2.2 (TODO 1-3)")
+    chunks = _load_chunks()
+    model = SentenceTransformer(EMBED_MODEL)
+    embeddings = model.encode(chunks, convert_to_numpy=True, normalize_embeddings=True)
+    index = faiss.IndexFlatIP(embeddings.shape[1])
+    index.add(embeddings.astype("float32"))
+    return model, index, chunks
 
 
 def retrieve_top_k(query: str, model, index, chunks: list[str], k: int = 3) -> list[str]:
-    """TODO 4: encode query, search index, return top-k chunks"""
-    raise NotImplementedError("Implement in Session 3 Lab 2.2 (TODO 4)")
+    query_embedding = model.encode([query], convert_to_numpy=True, normalize_embeddings=True)
+    _, indices = index.search(query_embedding.astype("float32"), k)
+    return [chunks[i] for i in indices[0] if i != -1]
 
 
 def generate_answer(query: str, context_chunks: list[str]) -> str:
-    """TODO 5: ส่ง query + context ไป Gemini, return answer
-
-    Hint: build prompt that says "ตอบจากข้อมูลต่อไปนี้เท่านั้น ถ้าไม่มีใน context ให้บอกว่าไม่รู้"
-    """
-    raise NotImplementedError("Implement in Session 3 Lab 2.2 (TODO 5)")
+    key = os.environ.get("GOOGLE_API_KEY")
+    if not key:
+        raise RuntimeError("GOOGLE_API_KEY not set in env")
+    client = genai.Client(api_key=key)
+    prompt = ANSWER_PROMPT.format(context="\n\n".join(context_chunks), query=query)
+    response = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
+    return response.text or ""
 
 
 def main():
