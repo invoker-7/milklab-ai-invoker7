@@ -9,9 +9,7 @@ requests>=2.31.0
 
 # S3
 streamlit>=1.35.0
-
-# fix to gradio 5.0.0 cant see streamlit in huggingface space
-# gradio>=5.0.0
+gradio>=5.0.0
 sentence-transformers>=3.0.0
 faiss-cpu>=1.8.0
 
