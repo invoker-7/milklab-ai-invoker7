@@ -16,7 +16,7 @@ from sentence_transformers import SentenceTransformer
 load_dotenv()
 
 KB_PATH = "menu_kb.md"
-EMBED_MODEL = "all-MiniLM-L6-v2"
+EMBED_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
 ANSWER_PROMPT = """\
 ตอบจากข้อมูลต่อไปนี้เท่านั้น ถ้าไม่มีใน context ให้บอกว่าไม่รู้
