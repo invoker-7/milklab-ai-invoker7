@@ -1,4 +1,4 @@
-"""MilkLab Morning Report (S2).
+"""ดอทเอพอกะเทิน Morning Report (S2).
 
 Usage:
     python morning_report.py --today --dry-run      # เทสกับข้อมูลที่เพิ่ง log วันนี้
@@ -193,7 +193,7 @@ def yesterday_th() -> str:
 # ---------- main ----------
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="MilkLab Morning Report")
+    parser = argparse.ArgumentParser(description="ดอทเอพอกะเทิน Morning Report")
     parser.add_argument("--date", default=None,
                         help="วันที่ต้องการสรุป YYYY-MM-DD")
     parser.add_argument("--today", action="store_true",

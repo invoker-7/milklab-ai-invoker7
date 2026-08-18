@@ -1,5 +1,5 @@
 {
-  "name": "MilkLab Solopreneur Course",
+  "name": "Dota 2 Skin Shop Solopreneur Course",
   "image": "mcr.microsoft.com/devcontainers/python:3.11",
   "features": {
     "ghcr.io/devcontainers/features/git:1": {}

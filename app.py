@@ -1,4 +1,4 @@
-"""MilkLab RAG Chatbot (S3).
+"""ดอทเอพอกะเทิน RAG Chatbot (S3).
 
 Run locally: streamlit run app.py
 Deploy: push to GitHub then deploy to Render (see Dockerfile)
@@ -23,7 +23,7 @@ from google.genai.types import EmbedContentConfig
 
 load_dotenv()
 
-KB_PATH = "menu_kb.md"
+KB_PATH = "skin_kb.md"
 EMBED_MODEL = "gemini-embedding-001"
 
 ANSWER_PROMPT = """\
@@ -56,7 +56,7 @@ def _normalize(vectors: np.ndarray) -> np.ndarray:
 
 @st.cache_resource
 def load_index():
-    """โหลด menu_kb.md, split เป็น chunk, encode ด้วย Gemini embedding API, สร้าง faiss index.
+    """โหลด skin_kb.md, split เป็น chunk, encode ด้วย Gemini embedding API, สร้าง faiss index.
     Cache เพราะเรียก embedding API ครั้งแรกใช้เวลาสักพัก
 
     Returns: (client, index, chunks_list)
@@ -114,9 +114,9 @@ def generate_answer(query: str, context_chunks: list[str]) -> str:
 
 
 def main():
-    st.set_page_config(page_title="MilkLab° RAG", page_icon="🥛")
-    st.title("MilkLab° RAG Chatbot")
-    st.caption("ถามอะไรเกี่ยวกับ MilkLab ได้ ตอบจาก menu_kb.md")
+    st.set_page_config(page_title="ดอทเอพอกะเทิน RAG", page_icon="🎮")
+    st.title("ดอทเอพอกะเทิน RAG Chatbot")
+    st.caption("ถามอะไรเกี่ยวกับสกิน Dota 2 ของร้านได้ ตอบจาก skin_kb.md")
 
     try:
         client, index, chunks = load_index()
@@ -131,7 +131,7 @@ def main():
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
 
-    if prompt := st.chat_input("ถามอะไรเกี่ยวกับ MilkLab"):
+    if prompt := st.chat_input("ถามอะไรเกี่ยวกับร้านดอทเอพอกะเทิน"):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.write(prompt)
@@ -161,8 +161,8 @@ def main():
 # def main_gradio():
 #     demo = gr.ChatInterface(
 #         fn=chat_fn,
-#         title="MilkLab° RAG Chatbot",
-#         description="ถามอะไรเกี่ยวกับ MilkLab ได้ ตอบจาก menu_kb.md",
+#         title="ดอทเอพอกะเทิน RAG Chatbot",
+#         description="ถามอะไรเกี่ยวกับสกิน Dota 2 ของร้านได้ ตอบจาก skin_kb.md",
 #     )
 #     demo.launch(server_name="0.0.0.0", server_port=int(os.environ.get("PORT", 7860)))
 

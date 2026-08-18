@@ -1,7 +1,7 @@
-"""MilkLab Agent Harness (S2).
+"""ดอทเอพอกะเทิน Agent Harness (S2).
 
 Usage:
-    python agent_harness.py --cmd "บันทึกขายนมหมี 2 ขวด ขวดละ 65"
+    python agent_harness.py --cmd "บันทึกขาย Arcana Terrorblade 1 ชิ้น ชิ้นละ 950"
 
 รับคำสั่งภาษาไทย ส่งให้ Gemini พร้อม tool schema parse response เป็น tool call
 เรียก tool จริง print trace log
@@ -26,7 +26,7 @@ TOOL_SCHEMA = [
         "parameters": {
             "type": "object",
             "properties": {
-                "menu": {"type": "string", "description": "ชื่อเมนู"},
+                "menu": {"type": "string", "description": "ชื่อสกิน/ไอเทม"},
                 "qty": {"type": "integer", "description": "จำนวนที่ขาย"},
                 "price": {"type": "number", "description": "ราคาต่อหน่วย"},
             },
