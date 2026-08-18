@@ -9,7 +9,7 @@ on:
       menu:
         description: 'ชื่อเมนู'
         required: true
-        default: 'นมหมีฮอกไกโด'
+        default: 'Arcana Terrorblade'
       qty:
         description: 'จำนวน'
         required: true
@@ -17,7 +17,7 @@ on:
       price:
         description: 'ราคา'
         required: true
-        default: '65'
+        default: '950'
 
 jobs:
   log-sale:
@@ -40,6 +40,6 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           python sales_logger.py \
-            --menu "${{ github.event.inputs.menu || 'นมหมีฮอกไกโด' }}" \
+            --menu "${{ github.event.inputs.menu || 'Arcana Terrorblade' }}" \
             --qty ${{ github.event.inputs.qty || 1 }} \
-            --price ${{ github.event.inputs.price || 65 }}
+            --price ${{ github.event.inputs.price || 950 }}

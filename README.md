@@ -1,10 +1,11 @@
-# MilkLab° Solopreneur Starter (Course 69-1)
+# ดอทเอพอกะเทิน — Dota 2 Skin Shop (Course 69-1)
 
-Template repo สำหรับวิชา 31-407-106-406 : AI for Solopreneurs
+Pivot จาก MilkLab° Solopreneur Starter (วิชา 31-407-106-406 : AI for Solopreneurs) มาเป็นร้านขายสกิน
+Dota 2 ดูเหตุผลและ domain การ pivot ได้ที่ [PIVOT.md](PIVOT.md)
 
 ## เริ่มต้น
 
-1. **Use this template** then Create a new repository (ตั้งชื่อ `milklab-<ชื่อ>`)
+1. **Use this template** then Create a new repository (ตั้งชื่อ `dota-skinshop-<ชื่อ>`)
 2. เปิด **Codespaces** จาก repo ใหม่
 3. ตั้ง user-level Codespaces secret `GOOGLE_API_KEY` (ดู Quickstart)
 4. รัน `python scripts/verify_setup.py` ใน terminal
@@ -13,10 +14,10 @@ Template repo สำหรับวิชา 31-407-106-406 : AI for Solopreneur
 
 | ไฟล์ | Session | คำอธิบาย |
 |---|---|---|
-| `caption_generator.py` | S1 | สร้างแคปชั่นให้โพสต์ MilkLab |
+| `caption_generator.py` | S1 | สร้างแคปชั่นให้โพสต์ขายสกิน |
 | `sales_logger.py` | S2 | บันทึกยอดขายลง Google Sheets |
 | `agent_harness.py` | S2 | รับคำสั่งภาษาไทย เรียก tool |
-| `app.py` | S3 | Streamlit RAG chatbot |
+| `app.py` | S3 | Streamlit RAG chatbot ตอบคำถามจาก `skin_kb.md` |
 
 ## เครื่องมือ
 
